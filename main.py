@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 #df_clean = pd.read_csv('data_clean.csv')
 
-#df_limited = df_clean.head(1000)
+#df_limited = df_clean.head(1500)
 
 # Crear el grafo
 #G = nx.Graph()
