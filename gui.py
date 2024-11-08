@@ -1,9 +1,8 @@
 import sys
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QStackedWidget
-)
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QStackedWidget
 from PyQt5.QtGui import QPixmap, QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 import requests
 from algoritmos import get_random_song_and_image
 
@@ -13,7 +12,7 @@ class HomePage(QWidget):
         super().__init__(parent)
 
         # Título "TUNE MATCH" centrado
-        self.title_label = QLabel("TUNE MATCH", self)
+        self.title_label = QLabel("MUSIKU", self)
         self.title_label.setAlignment(Qt.AlignCenter)
         self.title_label.setFont(QFont("Arial", 24, QFont.Bold))
 
@@ -34,8 +33,11 @@ class HomePage(QWidget):
 
 # Pantalla de información de la canción
 class SongPage(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, player, parent=None):
         super().__init__(parent)
+
+        # Almacenar el reproductor multimedia
+        self.player = player
 
         # Etiqueta de título
         self.song_title = QLabel("Canción aleatoria", self)
@@ -55,12 +57,18 @@ class SongPage(QWidget):
         self.back_button.setFont(QFont("Arial", 12))
         self.back_button.clicked.connect(self.on_back_clicked)
 
+        # Botón de reproducción/pausa
+        self.play_pause_button = QPushButton("▶", self)
+        self.play_pause_button.clicked.connect(self.toggle_play_pause)
+        self.is_playing = False  # Para llevar el estado de reproducción
+
         # Layout de la pantalla de canción
         layout = QVBoxLayout()
         layout.addWidget(self.song_title)
         layout.addWidget(self.song_label)
         layout.addWidget(self.artist_label)
         layout.addWidget(self.album_image_label)
+        layout.addWidget(self.play_pause_button)
         layout.addWidget(self.back_button)
         self.setLayout(layout)
 
@@ -78,7 +86,29 @@ class SongPage(QWidget):
         pixmap.loadFromData(image_data)
         self.album_image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio))
 
+        # Configurar URL de vista previa en el reproductor
+        self.player.setMedia(QMediaContent(QUrl(song_info['track_url'])))
+
+        # Reproducir la canción automáticamente al cargar una nueva
+        self.player.play()
+        self.play_pause_button.setText("⏸")  # Cambiar el botón a pausa
+        self.is_playing = True
+
+    def toggle_play_pause(self):
+        # Alternar entre reproducir y pausar
+        if self.is_playing:
+            self.player.pause()
+            self.play_pause_button.setText("▶")
+        else:
+            self.player.play()
+            self.play_pause_button.setText("⏸")
+        self.is_playing = not self.is_playing
+
     def on_back_clicked(self):
+        # Detener la reproducción cuando regresa a la pantalla principal
+        self.player.stop()
+        self.is_playing = False
+        self.play_pause_button.setText("▶")
         # Volver a la pantalla de inicio
         self.parentWidget().setCurrentIndex(0)
 
@@ -86,26 +116,24 @@ class SongPage(QWidget):
 class TuneMatchApp(QStackedWidget):
     def __init__(self):
         super().__init__()
+        self.setWindowTitle("TuneMatch")
+        self.setGeometry(100, 100, 300, 500)  # Medidas para simular una interfaz móvil
 
-        # Crear las pantallas
+        # Crear el reproductor multimedia
+        self.player = QMediaPlayer()
+
+        # Crear las pantallas y añadirlas al QStackedWidget
         self.home_page = HomePage(self)
-        self.song_page = SongPage(self)
+        self.song_page = SongPage(self.player, self)
 
-        # Agregar las pantallas al QStackedWidget
         self.addWidget(self.home_page)
         self.addWidget(self.song_page)
 
-        # Conectar el botón "Ingresar" en HomePage para mostrar la canción
-        self.home_page.enter_button.clicked.connect(self.show_song_page)
-
-    def show_song_page(self):
-        # Cambiar a la pantalla de la canción y mostrar una canción aleatoria
-        self.setCurrentWidget(self.song_page)
-        self.song_page.display_random_song()
+        # Configurar el botón de "Ingresar" para mostrar la pantalla de la canción aleatoria
+        self.home_page.enter_button.clicked.connect(self.song_page.display_random_song)
 
 # Inicializar la aplicación
 app = QApplication(sys.argv)
 window = TuneMatchApp()
-window.setGeometry(100, 100, 300, 500)  # Tamaño tipo móvil
 window.show()
 sys.exit(app.exec_())

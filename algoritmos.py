@@ -62,6 +62,7 @@ def get_random_song_and_image():
     track_id = random_song['spotify_track_id']
     song_title = random_song['Song']
     performer = random_song['Performer']
+    trackurl = random_song['spotify_track_preview_url']
 
     # Obtener imagen del álbum
     token = get_spotify_token()
@@ -70,5 +71,6 @@ def get_random_song_and_image():
     return {
         'title': song_title,
         'performer': performer,
-        'image_url': album_image_url
+        'image_url': album_image_url,
+        'track_url': trackurl
     }
