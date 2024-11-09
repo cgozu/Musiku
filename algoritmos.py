@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import base64
 import networkx as nx
+import heapq
 
 # Variables de autenticación de Spotify
 client_id = '82c9ff8e123b4112bbd706a75fac9c3f'
@@ -40,6 +41,27 @@ def get_spotify_token():
         print("Mensaje de error:", response.text)
         return None
 
+def dijkstra(graph, start):
+    # Inicializar las distancias y el heap
+    distances = {node: float('infinity') for node in graph.nodes}
+    distances[start] = 0
+    priority_queue = [(0, start)]
+    
+    while priority_queue:
+        current_distance, current_node = heapq.heappop(priority_queue)
+        
+        if current_distance > distances[current_node]:
+            continue
+        
+        for neighbor, attributes in graph[current_node].items():
+            distance = current_distance + attributes['weight']
+            
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                heapq.heappush(priority_queue, (distance, neighbor))
+    
+    return distances
+
 # Obtener imagen del album a partir del spotify_track_id
 def get_album_image(track_id, token):
     url = f"https://api.spotify.com/v1/tracks/{track_id}"
@@ -53,29 +75,38 @@ def get_album_image(track_id, token):
     return album_image_url
 
 # Seleccionar una cancion aleatoria y obtener su imagen
-def get_random_song_and_image():
-    # Leer archivo csv
+def get_random_song(graph=None, start_index=None):
     csv_path = os.path.join('assets', 'data_clean.csv')
     data = pd.read_csv(csv_path)
 
-    # Seleccionar una cancion aleatoria 
-    random_song = data.sample(1).iloc[0]
+    if graph is None:
+        # Seleccionar una canción aleatoria del dataset
+        random_song = data.sample(1).iloc[0]
+    else:
+        # Encontrar la canción con la distancia más corta desde start_index usando Dijkstra
+        shortest_paths = dijkstra(graph, start_index)
+        # Excluir el nodo de inicio y ordenar por distancia
+        sorted_paths = sorted(shortest_paths.items(), key=lambda x: x[1])
+        # Seleccionar la canción con la distancia más corta
+        closest_song_index = sorted_paths[1][0]  # El primer elemento es el nodo de inicio, así que tomamos el segundo
+        random_song = data[data['index'] == closest_song_index].iloc[0]
+
     track_id = random_song['spotify_track_id']
     song_title = random_song['Song']
     performer = random_song['Performer']
-    trackurl = random_song['spotify_track_preview_url']
+    track_url = random_song['spotify_track_preview_url']
     index1 = random_song['index']
 
-    # Obtener imagen del album
+    # Obtener imagen del álbum
     token = get_spotify_token()
     album_image_url = get_album_image(track_id, token)
-    
+
     return {
+        'index': index1,
         'title': song_title,
         'performer': performer,
-        'image_url': album_image_url,
-        'track_url': trackurl,
-        'index': index1
+        'track_url': track_url,
+        'image_url': album_image_url
     }
 
 def CreateSongGrafo(index):
@@ -87,47 +118,48 @@ def CreateSongGrafo(index):
     if index not in df['index'].values:
         return "Index not found"
     
-    # Obtener la cancion base
+    # Obtener la canción base
     song = df[df['index'] == index].iloc[0]
-    
-    # Crear un grafo vacio
+    print("ESTA ES LA CANCION XDXDXDXd:" ,song)
+    # Crear un grafo vacío
     G = nx.Graph()
+    
     
     # Agregar el nodo base al grafo
     G.add_node(index, **song.to_dict())
     
     # Recorrer todas las canciones del dataset
     for _, row in df.iterrows():
+        generosparecidos = 0
         if row['index'] == index:
             continue
         
         # Inicializar el puntaje
         score = 100
         
-        # Comparar spotify_genre
-        if song['spotify_genre'] == row['spotify_genre']:
-            score -= 5
-        
+        song_genres = song['spotify_genre'].split(',')
+        row_genres = row['spotify_genre'].split(',')
+        for genre in song_genres:
+            if genre in row_genres:
+                score -= 5
+                generosparecidos += 1
+
         # Comparar Performer
-        if song['Performer'] == row['Performer']:
+        if row['Performer'] in song['Performer'] or song['Performer'] in row['Performer']:
             score -= 20
-        
-        # Comparar tempo 
-        if abs(song['tempo'] - row['tempo']) < 30:
-            score -= 5 + (30 - abs(song['tempo'] - row['tempo']))
-        
-        # Comparar danceability 
-        if abs(song['danceability'] - row['danceability']) < 0.3:
-            score -= 5 + (10 - abs(song['danceability'] - row['danceability']) * 10)
-        
+            print("Si, es igual, mismo performer")
+    
         # Comparar spotify_track_album
         if song['spotify_track_album'] == row['spotify_track_album']:
             score -= 20
+            print("Si, es igual, mismo album GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         
         # Si el puntaje es menor a 100, agregar el nodo y la arista al grafo
-        if score < 100:
+        if score <= 80:
+            print("Generos parecidos: ", generosparecidos)
             G.add_node(row['index'], **row.to_dict())
             G.add_edge(index, row['index'], weight=score)
+            print(f"Canción: {row['Song']} - Valor de la arista: {score}")
     
     return G
 

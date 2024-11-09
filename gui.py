@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 import requests
-from algoritmos import get_random_song_and_image, SongNode, CreateSongGrafo
+from algoritmos import get_random_song, SongNode, CreateSongGrafo
 
 # Pantalla de inicio
 class HomePage(QWidget):
@@ -37,10 +37,12 @@ class SongPage(QWidget):
 
         # Almacenar el reproductor multimedia
         self.player = player
-
+        self.basesong = None
+        self.actualSong = None
+        self.grafo = None
         self.like_count = 0
 
-        
+
         # Etiqueta de título
         self.song_title = QLabel("Canción aleatoria", self)
         self.song_title.setAlignment(Qt.AlignCenter)
@@ -93,8 +95,9 @@ class SongPage(QWidget):
 
     def display_random_song(self):
         # Obtener canción aleatoria
-        song_info = get_random_song_and_image()
+        song_info = get_random_song()
         print(SongNode(song_info['index']))
+        self.actualSong = song_info['index']
 
         # Mostrar título y artista
         self.song_label.setText(f"Canción: {song_info['title']}")
@@ -134,28 +137,77 @@ class SongPage(QWidget):
 
     def on_like_clicked(self):
         self.like_count += 1
-
         if self.like_count == 1:
             # Primera vez que se hace clic en "Me gusta"
-            song_info = get_random_song_and_image()
-            grafo = CreateSongGrafo(song_info['index'])
-            print("Grafo creado:", grafo)
-        elif self.like_count == 2:
-            # Segunda vez que se hace clic en "Me gusta"
-            print("Evento para la segunda vez que se hace clic en 'Me gusta'")
-        elif self.like_count == 3:
-            # Tercera vez que se hace clic en "Me gusta"
-            print("Evento para la tercera vez que se hace clic en 'Me gusta'")
+            self.basesong = self.actualSong
+            self.grafo = CreateSongGrafo(self.basesong)
+            print("Grafo creado:", self.grafo)
+            # Refrescar la pantalla con la nueva canción
+            song_info = get_random_song(graph=self.grafo, start_index=self.basesong)
+            self.display_song(song_info)
+        else:
+            # 2nda o terca, o cuarta, etc. vez que se hace clic en "Me gusta"
+            # Aca se mostrara la cancion mas cercana al nodo base
+            song_info = get_random_song(graph=self.grafo, start_index=self.basesong)
+            print("Canción más cercana seleccionada:", song_info)
+            # Refrescar la pantalla con la nueva canción
+            self.display_song(song_info)
+    
 
     def on_dislike_clicked(self):
-        # Lógica para cuando el usuario hace clic en "No me gusta"
-        print("Canción marcada como No me gusta")
+        if not hasattr(self, 'grafo') or self.grafo is None:
+            # Grafo no está creado, cargar una nueva canción aleatoria
+            song_info = get_random_song()
+            self.display_song(song_info)
+        else:
+            # Grafo está creado, remover la canción actual del grafo
+            current_song_index = self.actualSong['index']
+            if current_song_index in self.grafo:
+                self.grafo.remove_node(current_song_index)
+                print(f"Canción con índice {current_song_index} removida del grafo")
+
+            # Seleccionar la siguiente canción más cercana en el grafo
+            if len(self.grafo.nodes) > 0:
+                # Actualizar la canción base a la siguiente más cercana
+                song_info = get_random_song(graph=self.grafo, start_index=current_song_index)
+                self.basesong = song_info['index']
+                self.display_song(song_info)
+            else:
+                # Si no hay más canciones en el grafo, cargar una nueva canción aleatoria
+                song_info = get_random_song()
+                self.display_song(song_info)
+
+        print("No me gusta")
+
+    def display_song(self, song_info):
+        if not song_info:
+            print("Error: song_info is None or invalid")
+            return
+        print(SongNode(song_info['index']))
+        self.actualSong = song_info['index']
+        # Mostrar título y artista
+        self.song_label.setText(f"Canción: {song_info['title']}")
+        self.artist_label.setText(f"Artista: {song_info['performer']}")
+
+        # Descargar y mostrar la imagen del álbum
+        image_data = requests.get(song_info['image_url']).content
+        pixmap = QPixmap()
+        pixmap.loadFromData(image_data)
+        self.album_image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio))
+
+        # Configurar URL de vista previa en el reproductor
+        self.player.setMedia(QMediaContent(QUrl(song_info['track_url'])))
+
+        # Reproducir la canción automáticamente al cargar una nueva
+        self.player.play()
+        self.play_pause_button.setText("⏸")  # Cambiar el botón a pausa
+        self.is_playing = True
 
 # Clase principal para la aplicación
 class TuneMatchApp(QStackedWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("TuneMatch")
+        self.setWindowTitle("Musiku")
         self.setGeometry(100, 100, 300, 500)  # Medidas para simular una interfaz móvil
 
         # Crear el reproductor multimedia
