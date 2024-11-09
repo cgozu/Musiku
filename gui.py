@@ -155,22 +155,19 @@ class SongPage(QWidget):
     
 
     def on_dislike_clicked(self):
-        if not hasattr(self, 'grafo') or self.grafo is None:
+        if self.grafo is None:
             # Grafo no está creado, cargar una nueva canción aleatoria
             song_info = get_random_song()
             self.display_song(song_info)
         else:
             # Grafo está creado, remover la canción actual del grafo
-            current_song_index = self.actualSong['index']
+            current_song_index = self.actualSong
             if current_song_index in self.grafo:
                 self.grafo.remove_node(current_song_index)
                 print(f"Canción con índice {current_song_index} removida del grafo")
-
-            # Seleccionar la siguiente canción más cercana en el grafo
             if len(self.grafo.nodes) > 0:
                 # Actualizar la canción base a la siguiente más cercana
-                song_info = get_random_song(graph=self.grafo, start_index=current_song_index)
-                self.basesong = song_info['index']
+                song_info = get_random_song(graph=self.grafo, start_index=self.basesong)
                 self.display_song(song_info)
             else:
                 # Si no hay más canciones en el grafo, cargar una nueva canción aleatoria

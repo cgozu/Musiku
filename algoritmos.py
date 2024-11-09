@@ -146,16 +146,16 @@ def CreateSongGrafo(index):
 
         # Comparar Performer
         if row['Performer'] in song['Performer'] or song['Performer'] in row['Performer']:
-            score -= 20
+            score -= 10
             print("Si, es igual, mismo performer")
     
         # Comparar spotify_track_album
         if song['spotify_track_album'] == row['spotify_track_album']:
-            score -= 20
+            score -= 15
             print("Si, es igual, mismo album GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         
         # Si el puntaje es menor a 100, agregar el nodo y la arista al grafo
-        if score <= 80:
+        if score <= 95:
             print("Generos parecidos: ", generosparecidos)
             G.add_node(row['index'], **row.to_dict())
             G.add_edge(index, row['index'], weight=score)
