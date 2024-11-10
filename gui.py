@@ -1,10 +1,10 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QStackedWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QStackedWidget, QHBoxLayout
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 import requests
-from algoritmos import get_random_song, SongNode, CreateSongGrafo
+from algoritmos import get_random_song, SongNode, CreateSongGrafo, UpdateSongGrafo, get_top_3_similar_songs
 
 # Pantalla de inicio
 class HomePage(QWidget):
@@ -30,18 +30,84 @@ class HomePage(QWidget):
         # Cambiar a la pantalla de cancion aleatorio
         self.parentWidget().setCurrentIndex(1)
 
+class MatchPage(QWidget):
+    def __init__(self, player, parent=None, liked_songs=None, top_3_songs_indices=None):
+        super().__init__(parent)
+        self.player = player
+        self.liked_songs = liked_songs if liked_songs else []
+        self.top_3_songs_indices = top_3_songs_indices if top_3_songs_indices else []
+        print("Liked songs:", self.liked_songs)
+        print("Top 3 songs indices:", self.top_3_songs_indices)
+        
+        layout = QVBoxLayout()
+        
+        # Título
+        title_label = QLabel("Canciones que te gustaron:", self)
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setFont(QFont("Arial", 20, QFont.Bold))
+        layout.addWidget(title_label)
+        
+        # Mostrar las canciones que te gustaron
+        for song_index in self.liked_songs:
+            song = SongNode(song_index)
+            song_layout = QVBoxLayout()
+            song_label = QLabel(f"{song['title']} - {song['performer']}", self)
+            
+            # Agregar la imagen del álbum
+            image_url = song['image_url']
+            if image_url:
+                pixmap = QPixmap()
+                pixmap.loadFromData(requests.get(image_url).content)
+                image_label = QLabel(self)
+                image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio))
+                song_layout.addWidget(image_label)
+            
+            song_layout.addWidget(song_label)
+            layout.addLayout(song_layout)
+        
+        # Título para las canciones MATCH
+        match_label = QLabel("CANCIONES MATCH:", self)
+        match_label.setAlignment(Qt.AlignCenter)
+        match_label.setFont(QFont("Arial", 20, QFont.Bold))
+        layout.addWidget(match_label)
+        
+        # Mostrar las 3 canciones más cercanas
+        for index in self.top_3_songs_indices:
+            song = SongNode(index)
+            song_layout = QVBoxLayout()
+            song_label = QLabel(f"{song['title']} - {song['performer']} - {song['spotify_track_album']}", self)
+            image_url = song['image_url']
+            if image_url:
+                pixmap = QPixmap()
+                pixmap.loadFromData(requests.get(image_url).content)
+                image_label = QLabel(self)
+                image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio))
+                song_layout.addWidget(image_label)
+            play_button = QPushButton("Reproducir", self)
+            play_button.clicked.connect(lambda _, s=song: self.play_song(s))
+            song_layout.addWidget(song_label)
+            song_layout.addWidget(play_button)
+            layout.addLayout(song_layout)
+        
+        self.setLayout(layout)
+    
+    def play_song(self, song):
+        self.player.setMedia(QMediaContent(QUrl(song['track_url'])))
+        self.player.play()
+
 # Pantalla de la canción
 class SongPage(QWidget):
     def __init__(self, player, parent=None):
         super().__init__(parent)
 
-        # Almacenar el reproductor multimedia
+        # Almacenar el reproductor multimedia   
         self.player = player
         self.basesong = None
         self.actualSong = None
         self.grafo = None
         self.like_count = 0
-
+        self.liked_songs = []  # Lista para almacenar las canciones que te gustan
+        self.top_3_songs_indices = []
 
         # Etiqueta de título
         self.song_title = QLabel("Canción aleatoria", self)
@@ -93,6 +159,12 @@ class SongPage(QWidget):
         layout.addWidget(self.back_button)
         self.setLayout(layout)
 
+    def show_match_screen(self):
+        self.top_3_songs_indices = get_top_3_similar_songs(self.grafo, self.basesong)
+        match_page = MatchPage(self.player, self, liked_songs=self.liked_songs, top_3_songs_indices=self.top_3_songs_indices)
+        self.parentWidget().addWidget(match_page)
+        self.parentWidget().setCurrentWidget(match_page)
+
     def display_random_song(self):
         # Obtener canción aleatoria
         song_info = get_random_song()
@@ -137,6 +209,9 @@ class SongPage(QWidget):
 
     def on_like_clicked(self):
         self.like_count += 1
+        min_score = 100 - (self.like_count - 1) * 10  # Reducir el puntaje mínimo en 10 unidades por cada clic en "Me gusta"
+        # Guardar la canción que te gusta
+        self.liked_songs.append(self.actualSong)    
         if self.like_count == 1:
             # Primera vez que se hace clic en "Me gusta"
             self.basesong = self.actualSong
@@ -146,12 +221,20 @@ class SongPage(QWidget):
             song_info = get_random_song(graph=self.grafo, start_index=self.basesong)
             self.display_song(song_info)
         else:
-            # 2nda o terca, o cuarta, etc. vez que se hace clic en "Me gusta"
-            # Aca se mostrara la cancion mas cercana al nodo base
-            song_info = get_random_song(graph=self.grafo, start_index=self.basesong)
-            print("Canción más cercana seleccionada:", song_info)
-            # Refrescar la pantalla con la nueva canción
-            self.display_song(song_info)
+            # Seleccionar una canción aleatoria del grafo
+            song_info = get_random_song(graph=self.grafo, start_index=self.actualSong)
+            print("Canción seleccionada:", song_info)
+            # Recalcular los pesos de las aristas y eliminar nodos con puntaje mayor o igual al puntaje mínimo
+            self.basesong = song_info['index']
+            self.grafo = UpdateSongGrafo(self.basesong, graph=self.grafo, min_score=min_score)
+            print(f"Pesos recalculados y nodos eliminados en el grafo (min_score={min_score}):", self.grafo)
+            
+            # Detectar cuando queden solo 30 nodos en el grafo
+            if len(self.grafo.nodes) <= 800:
+                self.show_match_screen()
+            else:
+                self.display_song(song_info)
+
     
 
     def on_dislike_clicked(self):
