@@ -18,6 +18,25 @@ class HomePage(QWidget):
         # Boton ingresar
         self.enter_button = QPushButton("Ingresar", self)
         self.enter_button.setFont(QFont("Arial", 14))
+        self.enter_button.setStyleSheet("""
+    QPushButton {
+        background-color: #DC143C;  
+        color: black;              
+        border-radius: 10px;       
+        padding: 12px 30px;        
+        font-size: 20px;           
+        border: 2px solid #DC143C;  
+        transition: background-color 0.3s, transform 0.3s;  
+    }
+    QPushButton:hover {
+        background-color: #B22222;  
+        transform: scale(1.05);     
+    }
+    QPushButton:pressed {
+        background-color: #8B0000;  
+        transform: scale(0.98);     
+    }
+""")
         self.enter_button.clicked.connect(self.on_enter_clicked)
 
         # Layout de la pantalla de inicio
@@ -84,6 +103,25 @@ class MatchPage(QWidget):
                 image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio))
                 song_layout.addWidget(image_label)
             play_button = QPushButton("Reproducir", self)
+            self.like_button.setStyleSheet("""
+    QPushButton {
+        background-color: #DC143C;  
+        color: black;               
+        border-radius: 2px;        
+        padding: 5px 9px;        
+        font-size: 17px;            
+        border: 2px solid #DC143C;  
+        transition: background-color 0.3s, transform 0.3s;  
+    }
+    QPushButton:hover {
+        background-color: #B22222;  
+        transform: scale(1.05);      
+    }
+    QPushButton:pressed {
+        background-color: #8B0000;  
+        transform: scale(0.98);      
+    }
+""")
             play_button.clicked.connect(lambda _, s=song: self.play_song(s))
             song_layout.addWidget(song_label)
             song_layout.addWidget(play_button)
@@ -125,21 +163,97 @@ class SongPage(QWidget):
         # Botón de "Me gusta"
         self.like_button = QPushButton("Me gusta", self)
         self.like_button.setFont(QFont("Arial", 12))
+        self.like_button.setStyleSheet("""
+    QPushButton {
+        background-color: #DC143C;  
+        color: black;               
+        border-radius: 2px;        
+        padding: 5px 9px;        
+        font-size: 17px;            
+        border: 2px solid #DC143C;  
+        transition: background-color 0.3s, transform 0.3s;  
+    }
+    QPushButton:hover {
+        background-color: #B22222;  
+        transform: scale(1.05);      
+    }
+    QPushButton:pressed {
+        background-color: #8B0000;  
+        transform: scale(0.98);      
+    }
+""")
         self.like_button.clicked.connect(self.on_like_clicked)
 
         # Botón de "No me gusta"
         self.dislike_button = QPushButton("No me gusta", self)
         self.dislike_button.setFont(QFont("Arial", 12))
+        self.dislike_button.setStyleSheet("""
+    QPushButton {
+        background-color: #DC143C;  
+        color: black;               
+        border-radius: 2px;        
+        padding: 5px 9px;         
+        font-size: 17px;            
+        border: 2px solid #DC143C;  
+        transition: background-color 0.3s, transform 0.3s;  
+    }
+    QPushButton:hover {
+        background-color: #B22222;  
+        transform: scale(1.05);      
+    }
+    QPushButton:pressed {
+        background-color: #8B0000;  
+        transform: scale(0.98);      
+    }
+""")
         self.dislike_button.clicked.connect(self.on_dislike_clicked)
 
         # Botón de reproducción/pausa
         self.play_pause_button = QPushButton("▶", self)
+        self.play_pause_button.setStyleSheet("""
+    QPushButton {
+        background-color: #DC143C;  
+        color: black;              
+        border-radius: 2px;        
+        padding: 5px 8px;        
+        font-size: 17px;            
+        border: 2px solid #DC143C;  
+        transition: background-color 0.3s, transform 0.3s;  
+    }
+    QPushButton:hover {
+        background-color: #B22222;  
+        transform: scale(1.05);      
+    }
+    QPushButton:pressed {
+        background-color: #8B0000; 
+        transform: scale(0.98);      
+    }
+""")
         self.play_pause_button.clicked.connect(self.toggle_play_pause)
         self.is_playing = False  # Para llevar el estado de reproducción
 
         # Botón de volver
         self.back_button = QPushButton("Volver", self)
         self.back_button.setFont(QFont("Arial", 12))
+        self.back_button.setStyleSheet("""
+    QPushButton {
+        background-color: #DC143C;  
+        color: black;              
+        border-radius: 2px;        
+        padding: 5px 9px;        
+        font-size: 17px;            
+        border: 2px solid #DC143C;  
+        transition: background-color 0.3s, transform 0.3s; 
+    }
+    QPushButton:hover {
+        background-color: #B22222;  
+        transform: scale(1.05);    
+    }
+    QPushButton:pressed {
+        background-color: #8B0000;  
+        transform: scale(0.98);      
+    }
+""")
         self.back_button.clicked.connect(self.on_back_clicked)
 
         # Layout de la pantalla de canción
