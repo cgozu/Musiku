@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QStackedWidget, QHBoxLayout
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtGui import QPixmap, QFont, QIcon
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 import requests
@@ -21,7 +21,7 @@ class HomePage(QWidget):
         self.enter_button.setStyleSheet("""
     QPushButton {
         background-color: #DC143C;  
-        color: black;              
+        color: white;              
         border-radius: 10px;       
         padding: 12px 30px;        
         font-size: 20px;           
@@ -103,10 +103,10 @@ class MatchPage(QWidget):
                 image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio))
                 song_layout.addWidget(image_label)
             play_button = QPushButton("Reproducir", self)
-            self.like_button.setStyleSheet("""
+            play_button.setStyleSheet("""
     QPushButton {
         background-color: #DC143C;  
-        color: black;               
+        color: white;               
         border-radius: 2px;        
         padding: 5px 9px;        
         font-size: 17px;            
@@ -166,7 +166,7 @@ class SongPage(QWidget):
         self.like_button.setStyleSheet("""
     QPushButton {
         background-color: #DC143C;  
-        color: black;               
+        color: white;               
         border-radius: 2px;        
         padding: 5px 9px;        
         font-size: 17px;            
@@ -190,7 +190,7 @@ class SongPage(QWidget):
         self.dislike_button.setStyleSheet("""
     QPushButton {
         background-color: #DC143C;  
-        color: black;               
+        color: white;               
         border-radius: 2px;        
         padding: 5px 9px;         
         font-size: 17px;            
@@ -213,7 +213,7 @@ class SongPage(QWidget):
         self.play_pause_button.setStyleSheet("""
     QPushButton {
         background-color: #DC143C;  
-        color: black;              
+        color: white;              
         border-radius: 2px;        
         padding: 5px 8px;        
         font-size: 17px;            
@@ -238,7 +238,7 @@ class SongPage(QWidget):
         self.back_button.setStyleSheet("""
     QPushButton {
         background-color: #DC143C;  
-        color: black;              
+        color: white;              
         border-radius: 2px;        
         padding: 5px 9px;        
         font-size: 17px;            
@@ -402,6 +402,14 @@ class TuneMatchApp(QStackedWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Musiku")
+
+        self.setWindowIcon(QIcon("img/icono.png"))
+
+        self.setStyleSheet("""
+            QStackedWidget {
+                background-color: #2B3144;
+            }
+        """)
         self.setGeometry(100, 100, 300, 500)  # Medidas para simular una interfaz móvil
 
         # Crear el reproductor multimedia
@@ -417,8 +425,15 @@ class TuneMatchApp(QStackedWidget):
         # Configurar el botón de "Ingresar" para mostrar la pantalla de la canción aleatoria
         self.home_page.enter_button.clicked.connect(self.song_page.display_random_song)
 
+
+
 # Inicializar la aplicación
 app = QApplication(sys.argv)
+app.setStyleSheet("""
+    QLabel, QPushButton, QLineEdit {
+        color: #FFFFFF;
+    }
+""")
 window = TuneMatchApp()
 window.show()
 sys.exit(app.exec_())
