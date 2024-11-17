@@ -40,6 +40,32 @@ def get_spotify_token():
         print(f"Error al obtener el token de Spotify: {response.status_code}")
         print("Mensaje de error:", response.text)
         return None
+#
+def bellman_ford(graph, start):
+    # Inicializar las distancias y los predecesores
+    distances = {node: float('infinity') for node in graph.nodes}
+    distances[start] = 0
+    predecessors = {node: None for node in graph.nodes}
+    
+    # Relajar todas las aristas V-1 veces
+    for _ in range(len(graph.nodes) - 1):
+        for node in graph.nodes:
+            for neighbor, attributes in graph[node].items():
+                weight = attributes['weight']
+                if distances[node] + weight < distances[neighbor]:
+                    distances[neighbor] = distances[node] + weight
+                    predecessors[neighbor] = node
+    
+    # Verificar la existencia de ciclos negativos
+    for node in graph.nodes:
+        for neighbor, attributes in graph[node].items():
+            weight = attributes['weight']
+            if distances[node] + weight < distances[neighbor]:
+                print("El grafo contiene un ciclo negativo (osea hay una similitud muy fuerte)")
+                #return None, None Si los queremos
+    
+    return distances, predecessors
+
 def dijkstra(graph, start):
     # Inicializar las distancias y el heap
     distances = {node: float('infinity') for node in graph.nodes}
@@ -62,14 +88,24 @@ def dijkstra(graph, start):
     return distances
 
 def get_top_3_similar_songs(graph, start_index):
-    # Utilizar Dijkstra para encontrar las distancias desde el nodo inicial
-    distances = dijkstra(graph, start_index)
-    # Ordenar las canciones por distancia
+    # bellman Ford
+    distances, _ = bellman_ford(graph, start_index)
+
+    # ordenar las canciones por distancia
     sorted_distances = sorted(distances.items(), key=lambda x: x[1])
-    # Obtener los índices de las 3 canciones más cercanas (excluyendo el nodo inicial)
+    # obtener indices de las 3 cancion mas cercanas
     top_3_songs_indices = [index for index, _ in sorted_distances[1:4]]
     print("Desde algoritmos:", top_3_songs_indices)
     return top_3_songs_indices
+
+    # dijkstra 
+    # distances = dijkstra(graph, start_index)
+    # ordenar las canciones por distancia
+    # sorted_distances = sorted(distances.items(), key=lambda x: x[1])
+    # obtener indices de las 3 cancion mas cercanas
+    # top_3_songs_indices = [index for index, _ in sorted_distances[1:4]]
+    # print("Desde algoritmos:", top_3_songs_indices)
+    # return top_3_songs_indices
 
 # Obtener imagen del album a partir del spotify_track_id
 def get_album_image(track_id, token):
@@ -84,7 +120,7 @@ def get_album_image(track_id, token):
     return album_image_url
 
 # Seleccionar una cancion aleatoria y obtener su imagen
-def get_random_song(graph=None, start_index=None):
+def get_random_song(graph=None):
     csv_path = os.path.join('assets', 'data_clean.csv')
     data = pd.read_csv(csv_path)
 
@@ -114,21 +150,31 @@ def get_random_song(graph=None, start_index=None):
         'image_url': album_image_url
     }
 
-def UpdateSongGrafo(index, graph, min_score):
+def UpdateSongGrafo(previous_index, new_index, graph, min_score):
     # Leer el archivo CSV
     csv_path = os.path.join('assets', 'data_clean.csv')
     df = pd.read_csv(csv_path)
     
-    # Verificar si el índice existe en el dataset
-    if index not in df['index'].values:
+    # Verificar si los índices existen en el dataset
+    if previous_index not in df['index'].values or new_index not in df['index'].values:
         return "Index not found"
     
-    # Obtener la canción base
-    song = df[df['index'] == index].iloc[0]
+    # Obtener la canción base (nuevo nodo)
+    new_song = df[df['index'] == new_index].iloc[0]
     
-    # Recorrer todos los nodos existentes en el grafo
+    # Transferir las conexiones del nodo anterior al nuevo nodo
+    for neighbor in list(graph.neighbors(previous_index)):
+        if neighbor == new_index:
+            continue
+        weight = graph[previous_index][neighbor]['weight']
+        graph.add_edge(new_index, neighbor, weight=weight)
+    
+    # Eliminar el nodo anterior del grafo
+    graph.remove_node(previous_index)
+    
+    # Recorrer todos los nodos existentes en el grafo para actualizar las conexiones del nuevo nodo
     for node in list(graph.nodes):
-        if node == index:
+        if node == new_index:
             continue
         
         row = df[df['index'] == node].iloc[0]
@@ -137,37 +183,34 @@ def UpdateSongGrafo(index, graph, min_score):
         score = 100
         
         # Comparar spotify_genre
-        song_genres = song['spotify_genre'].split(',')
+        new_song_genres = new_song['spotify_genre'].split(',')
         row_genres = row['spotify_genre'].split(',')
-        for genre in song_genres:
+        for genre in new_song_genres:
             if genre in row_genres:
                 score -= 5
         
         # Comparar Performer
-        if row['Performer'] in song['Performer'] or song['Performer'] in row['Performer']:
+        if row['Performer'] in new_song['Performer'] or new_song['Performer'] in row['Performer']:
             score -= 10
-            #print("Si, es igual, mismo performer")
         
         # Comparar tempo (consideramos similar si la diferencia es menor a 30)
-        if abs(song['tempo'] - row['tempo']) < 30:
-            score -= 5 + (30 - abs(song['tempo'] - row['tempo']))
+        if abs(new_song['tempo'] - row['tempo']) < 30:
+            score -= 5 + (30 - abs(new_song['tempo'] - row['tempo']))
         
         # Comparar danceability (consideramos similar si la diferencia es menor a 0.3)
-        if abs(song['danceability'] - row['danceability']) < 0.3:
-            score -= 5 + (10 - abs(song['danceability'] - row['danceability']) * 10)
+        if abs(new_song['danceability'] - row['danceability']) < 0.3:
+            score -= 5 + (10 - abs(new_song['danceability'] - row['danceability']) * 10)
         
         # Comparar spotify_track_album
-        if song['spotify_track_album'] == row['spotify_track_album']:
+        if new_song['spotify_track_album'] == row['spotify_track_album']:
             score -= 15
         
         # Si el puntaje es menor a 100, actualizar la arista en el grafo
         if score < min_score:
-            graph.add_edge(index, node, weight=score)
-            #print(f"Canción: {row['Song']} - Valor de la arista: {score}")
+            graph.add_edge(new_index, node, weight=score)
         else:
             # Eliminar nodos con puntaje de 100
             graph.remove_node(node)
-            #print(f"Nodo eliminado: {row['Song']} - Puntaje: {score}")
     
     return graph
 
@@ -253,6 +296,7 @@ def SongNode(index):
     
     # Retornar la información en un diccionario
     return {
+        'index': index,
         'spotify_genre': spotify_genre,
         'performer': performer,
         'tempo': tempo,

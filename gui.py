@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLay
 from PyQt5.QtGui import QPixmap, QFont, QIcon
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtCore import QPropertyAnimation, QRect
 import requests
 from algoritmos import get_random_song, SongNode, CreateSongGrafo, UpdateSongGrafo, get_top_3_similar_songs
 
@@ -19,24 +20,21 @@ class HomePage(QWidget):
         self.enter_button = QPushButton("Ingresar", self)
         self.enter_button.setFont(QFont("Arial", 14))
         self.enter_button.setStyleSheet("""
-    QPushButton {
-        background-color: #DC143C;  
-        color: white;              
-        border-radius: 10px;       
-        padding: 12px 30px;        
-        font-size: 20px;           
-        border: 2px solid #DC143C;  
-        transition: background-color 0.3s, transform 0.3s;  
-    }
-    QPushButton:hover {
-        background-color: #B22222;  
-        transform: scale(1.05);     
-    }
-    QPushButton:pressed {
-        background-color: #8B0000;  
-        transform: scale(0.98);     
-    }
-""")
+            QPushButton {
+                background-color: #DC143C;  
+                color: white;              
+                border-radius: 10px;       
+                padding: 12px 30px;        
+                font-size: 20px;           
+                border: 2px solid #DC143C;  
+            }
+            QPushButton:hover {
+                background-color: #B22222;  
+            }
+            QPushButton:pressed {
+                background-color: #8B0000;  
+            }
+        """)
         self.enter_button.clicked.connect(self.on_enter_clicked)
 
         # Layout de la pantalla de inicio
@@ -111,15 +109,12 @@ class MatchPage(QWidget):
         padding: 5px 9px;        
         font-size: 17px;            
         border: 2px solid #DC143C;  
-        transition: background-color 0.3s, transform 0.3s;  
     }
     QPushButton:hover {
         background-color: #B22222;  
-        transform: scale(1.05);      
     }
     QPushButton:pressed {
         background-color: #8B0000;  
-        transform: scale(0.98);      
     }
 """)
             play_button.clicked.connect(lambda _, s=song: self.play_song(s))
@@ -143,7 +138,9 @@ class SongPage(QWidget):
         self.basesong = None
         self.actualSong = None
         self.grafo = None
+        self.lastGrafo = None
         self.like_count = 0
+        self.dislike_count = 0  # Contador para "no me gusta"
         self.liked_songs = []  # Lista para almacenar las canciones que te gustan
         self.top_3_songs_indices = []
 
@@ -171,15 +168,12 @@ class SongPage(QWidget):
         padding: 5px 9px;        
         font-size: 17px;            
         border: 2px solid #DC143C;  
-        transition: background-color 0.3s, transform 0.3s;  
     }
     QPushButton:hover {
         background-color: #B22222;  
-        transform: scale(1.05);      
     }
     QPushButton:pressed {
         background-color: #8B0000;  
-        transform: scale(0.98);      
     }
 """)
         self.like_button.clicked.connect(self.on_like_clicked)
@@ -195,15 +189,12 @@ class SongPage(QWidget):
         padding: 5px 9px;         
         font-size: 17px;            
         border: 2px solid #DC143C;  
-        transition: background-color 0.3s, transform 0.3s;  
     }
     QPushButton:hover {
         background-color: #B22222;  
-        transform: scale(1.05);      
     }
     QPushButton:pressed {
         background-color: #8B0000;  
-        transform: scale(0.98);      
     }
 """)
         self.dislike_button.clicked.connect(self.on_dislike_clicked)
@@ -218,15 +209,12 @@ class SongPage(QWidget):
         padding: 5px 8px;        
         font-size: 17px;            
         border: 2px solid #DC143C;  
-        transition: background-color 0.3s, transform 0.3s;  
     }
     QPushButton:hover {
         background-color: #B22222;  
-        transform: scale(1.05);      
     }
     QPushButton:pressed {
         background-color: #8B0000; 
-        transform: scale(0.98);      
     }
 """)
         self.play_pause_button.clicked.connect(self.toggle_play_pause)
@@ -243,15 +231,12 @@ class SongPage(QWidget):
         padding: 5px 9px;        
         font-size: 17px;            
         border: 2px solid #DC143C;  
-        transition: background-color 0.3s, transform 0.3s; 
     }
     QPushButton:hover {
         background-color: #B22222;  
-        transform: scale(1.05);    
     }
     QPushButton:pressed {
         background-color: #8B0000;  
-        transform: scale(0.98);      
     }
 """)
         self.back_button.clicked.connect(self.on_back_clicked)
@@ -332,19 +317,21 @@ class SongPage(QWidget):
             self.grafo = CreateSongGrafo(self.basesong)
             print("Grafo creado:", self.grafo)
             # Refrescar la pantalla con la nueva canción
-            song_info = get_random_song(graph=self.grafo, start_index=self.basesong)
+            song_info = get_random_song(graph=self.grafo)
             self.display_song(song_info)
         else:
-            # Seleccionar una canción aleatoria del grafo
-            song_info = get_random_song(graph=self.grafo, start_index=self.actualSong)
+            self.dislike_count = 0  # Reiniciar el contador de "No me gusta"
+            self.lastGrafo = self.grafo
+            self.grafo = UpdateSongGrafo(self.basesong, self.actualSong,graph=self.grafo, min_score=min_score)
+            self.basesong = self.actualSong
+
+            # Seleccionar una canció-n aleatoria del grafo
+            song_info = get_random_song(graph=self.grafo)
+
             print("Canción seleccionada:", song_info)
-            # Recalcular los pesos de las aristas y eliminar nodos con puntaje mayor o igual al puntaje mínimo
-            self.basesong = song_info['index']
-            self.grafo = UpdateSongGrafo(self.basesong, graph=self.grafo, min_score=min_score)
             print(f"Pesos recalculados y nodos eliminados en el grafo (min_score={min_score}):", self.grafo)
-            
             # Detectar cuando queden solo 30 nodos en el grafo
-            if len(self.grafo.nodes) <= 800:
+            if len(self.grafo.nodes) <= 30:
                 self.show_match_screen()
             else:
                 self.display_song(song_info)
@@ -357,21 +344,39 @@ class SongPage(QWidget):
             song_info = get_random_song()
             self.display_song(song_info)
         else:
-            # Grafo está creado, remover la canción actual del grafo
-            current_song_index = self.actualSong
-            if current_song_index in self.grafo:
-                self.grafo.remove_node(current_song_index)
-                print(f"Canción con índice {current_song_index} removida del grafo")
-            if len(self.grafo.nodes) > 0:
-                # Actualizar la canción base a la siguiente más cercana
-                song_info = get_random_song(graph=self.grafo, start_index=self.basesong)
-                self.display_song(song_info)
+            self.dislike_count += 1
+            
+            if self.dislike_count == 5:
+                # Volver al grafo anterior
+                if self.lastGrafo is not None:
+                    self.grafo = self.lastGrafo
+                    print("Volviendo al grafo anterior:", self.grafo)
+                    # Seleccionar una nueva canción del grafo anterior
+                    self.grafo.remove_node(self.actualSong)
+                    song_info = get_random_song(graph=self.grafo)
+                    self.display_song(song_info)
+                    self.dislike_count = 0  # Reiniciar el contador de "No me gusta"
+                else:
+                    # Seleccionar una canción aleatoria
+                    song_info = get_random_song(self.grafo)
+                    print("Canción seleccionada (aleatoria) VOLVIMOS:", song_info)
+                    self.display_song(song_info)
+                    self.dislike_count = 0  # Reiniciar el contador de "No me gusta"
+            elif self.dislike_count == 3:
+                # Seleccionar la canción más parecida utilizando Dijkstra
+                top_3_songs_indices = get_top_3_similar_songs(self.grafo, self.basesong)
+                if top_3_songs_indices:
+                    next_song_index = top_3_songs_indices[1]
+                    song_info = SongNode(next_song_index)
+                    print("Canción seleccionada (más parecida):", song_info)
+                    self.grafo.remove_node(self.actualSong)
+                    self.display_song(song_info)
             else:
-                # Si no hay más canciones en el grafo, cargar una nueva canción aleatoria
-                song_info = get_random_song()
+                # Seleccionar una canción aleatoria
+                self.grafo.remove_node(self.actualSong)
+                song_info = get_random_song(self.grafo)
+                print("Canción seleccionada (aleatoria):", song_info)
                 self.display_song(song_info)
-
-        print("No me gusta")
 
     def display_song(self, song_info):
         if not song_info:
@@ -427,13 +432,3 @@ class TuneMatchApp(QStackedWidget):
 
 
 
-# Inicializar la aplicación
-app = QApplication(sys.argv)
-app.setStyleSheet("""
-    QLabel, QPushButton, QLineEdit {
-        color: #FFFFFF;
-    }
-""")
-window = TuneMatchApp()
-window.show()
-sys.exit(app.exec_())
