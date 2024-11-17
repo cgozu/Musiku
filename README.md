@@ -17,4 +17,4 @@ Musiku es una plataforma de recomendación de canciones basada en las preferenci
 
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/musiku.git
+   git clone https://github.com/cgozu/Musiku.git
