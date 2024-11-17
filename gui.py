@@ -307,7 +307,7 @@ class SongPage(QWidget):
 
     def on_like_clicked(self):
         self.like_count += 1
-        min_score = 100 - (self.like_count - 1) * 10  # Reducir el puntaje mínimo en 10 unidades por cada clic en me gusta
+        min_score = 100 - (self.like_count - 1) * 15  # Reducir el puntaje mínimo en 15 unidades por cada clic en me gusta
         # Guardar la cancion que te gusta
         self.liked_songs.append(self.actualSong)    
         if self.like_count == 1:
@@ -330,7 +330,7 @@ class SongPage(QWidget):
             print("Canción seleccionada:", song_info)
             print(f"Pesos recalculados y nodos eliminados en el grafo (min_score={min_score}):", self.grafo)
             # Detectar cuando queden solo 30 nodos en el grafo
-            if len(self.grafo.nodes) <= 40:
+            if len(self.grafo.nodes) <= 40 or min_score < 0:
                 self.show_match_screen()
             else:
                 self.display_song(song_info)

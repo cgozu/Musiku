@@ -65,7 +65,7 @@ def bellman_ford(graph, start):
                 #return None, None Si los queremos
     
     return distances, predecessors
-
+#
 def dijkstra(graph, start):
     # Inicializar las distancias y el heap
     distances = {node: float('infinity') for node in graph.nodes}
@@ -179,31 +179,34 @@ def UpdateSongGrafo(previous_index, new_index, graph, min_score):
         
         row = df[df['index'] == node].iloc[0]
         
-        # Inicializar el puntaje
-        score = 100
+        # Obtener peso existente
+        if graph.has_edge(new_index, node):
+            score = graph[new_index][node]['weight']
+        else:
+            score = 100
         
         # Comparar spotify_genre
         new_song_genres = new_song['spotify_genre'].split(',')
         row_genres = row['spotify_genre'].split(',')
         for genre in new_song_genres:
             if genre in row_genres:
-                score -= 5
+                score -= 2 * (100 - score) / 100
         
         # Comparar Performer
         if row['Performer'] in new_song['Performer'] or new_song['Performer'] in row['Performer']:
-            score -= 10
+            score -= 5 * (100 - score) / 100
         
         # Comparar tempo (consideramos similar si la diferencia es menor a 30)
         if abs(new_song['tempo'] - row['tempo']) < 30:
-            score -= 5 + (30 - abs(new_song['tempo'] - row['tempo']))
+            score -= (2 + (30 - abs(new_song['tempo'] - row['tempo']))) * (100 - score) / 100
         
         # Comparar danceability (consideramos similar si la diferencia es menor a 0.3)
         if abs(new_song['danceability'] - row['danceability']) < 0.3:
-            score -= 5 + (10 - abs(new_song['danceability'] - row['danceability']) * 10)
+            score -= (2 + (10 - abs(new_song['danceability'] - row['danceability']) * 10)) * (100 - score) / 100
         
         # Comparar spotify_track_album
         if new_song['spotify_track_album'] == row['spotify_track_album']:
-            score -= 15
+            score -= 5 * (100 - score) / 100
         
         # Si el puntaje es menor a 100, actualizar la arista en el grafo
         if score < min_score:
