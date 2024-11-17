@@ -58,7 +58,7 @@ class MatchPage(QWidget):
         
         layout = QVBoxLayout()
         
-        # Título
+        # Titulo
         title_label = QLabel("Canciones que te gustaron:", self)
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setFont(QFont("Arial", 20, QFont.Bold))
@@ -82,13 +82,13 @@ class MatchPage(QWidget):
             song_layout.addWidget(song_label)
             layout.addLayout(song_layout)
         
-        # Título para las canciones MATCH
+        # Titulo para las canciones MATCH
         match_label = QLabel("CANCIONES MATCH:", self)
         match_label.setAlignment(Qt.AlignCenter)
         match_label.setFont(QFont("Arial", 20, QFont.Bold))
         layout.addWidget(match_label)
         
-        # Mostrar las 3 canciones más cercanas
+        # Mostrar las 3 canciones mas cercanas
         for index in self.top_3_songs_indices:
             song = SongNode(index)
             song_layout = QVBoxLayout()
@@ -128,28 +128,27 @@ class MatchPage(QWidget):
         self.player.setMedia(QMediaContent(QUrl(song['track_url'])))
         self.player.play()
 
-# Pantalla de la canción
+# Pantalla de la cancion
 class SongPage(QWidget):
     def __init__(self, player, parent=None):
         super().__init__(parent)
-
-        # Almacenar el reproductor multimedia   
+  
         self.player = player
         self.basesong = None
         self.actualSong = None
         self.grafo = None
         self.lastGrafo = None
         self.like_count = 0
-        self.dislike_count = 0  # Contador para "no me gusta"
-        self.liked_songs = []  # Lista para almacenar las canciones que te gustan
+        self.dislike_count = 0  # Contador no me gusta
+        self.liked_songs = []  # Lista de canciones me gusta
         self.top_3_songs_indices = []
 
-        # Etiqueta de título
+        # titulo
         self.song_title = QLabel("Canción aleatoria", self)
         self.song_title.setAlignment(Qt.AlignCenter)
         self.song_title.setFont(QFont("Arial", 20, QFont.Bold))
 
-        # Etiquetas para mostrar canción, artista y álbum
+        # cancion, artista y album
         self.song_label = QLabel("", self)
         self.song_label.setAlignment(Qt.AlignCenter)
         self.artist_label = QLabel("", self)
@@ -157,7 +156,7 @@ class SongPage(QWidget):
         self.album_image_label = QLabel(self)
         self.album_image_label.setAlignment(Qt.AlignCenter)
 
-        # Botón de "Me gusta"
+        # Botón de me gusta
         self.like_button = QPushButton("Me gusta", self)
         self.like_button.setFont(QFont("Arial", 12))
         self.like_button.setStyleSheet("""
@@ -178,7 +177,7 @@ class SongPage(QWidget):
 """)
         self.like_button.clicked.connect(self.on_like_clicked)
 
-        # Botón de "No me gusta"
+        # Botón de no me gusta
         self.dislike_button = QPushButton("No me gusta", self)
         self.dislike_button.setFont(QFont("Arial", 12))
         self.dislike_button.setStyleSheet("""
@@ -199,7 +198,7 @@ class SongPage(QWidget):
 """)
         self.dislike_button.clicked.connect(self.on_dislike_clicked)
 
-        # Botón de reproducción/pausa
+        # Boton de reproduccion y pausa
         self.play_pause_button = QPushButton("▶", self)
         self.play_pause_button.setStyleSheet("""
     QPushButton {
@@ -218,7 +217,7 @@ class SongPage(QWidget):
     }
 """)
         self.play_pause_button.clicked.connect(self.toggle_play_pause)
-        self.is_playing = False  # Para llevar el estado de reproducción
+        self.is_playing = False 
 
         # Botón de volver
         self.back_button = QPushButton("Volver", self)
@@ -241,14 +240,14 @@ class SongPage(QWidget):
 """)
         self.back_button.clicked.connect(self.on_back_clicked)
 
-        # Layout de la pantalla de canción
+        # Layout de la pantalla de cancion
         layout = QVBoxLayout()
         layout.addWidget(self.song_title)
         layout.addWidget(self.song_label)
         layout.addWidget(self.album_image_label)
         layout.addWidget(self.artist_label)
 
-        # Layout para los botones "Me gusta" y "No me gusta"
+        # Layout para los botones me gusta o no me gusta
         button_layout = QVBoxLayout()
         button_layout.addWidget(self.like_button)
         button_layout.addWidget(self.dislike_button)
@@ -265,16 +264,16 @@ class SongPage(QWidget):
         self.parentWidget().setCurrentWidget(match_page)
 
     def display_random_song(self):
-        # Obtener canción aleatoria
+        # Obtener cancion aleatoria
         song_info = get_random_song()
         print(SongNode(song_info['index']))
         self.actualSong = song_info['index']
 
-        # Mostrar título y artista
+        # Mostrar titulo y artista
         self.song_label.setText(f"Canción: {song_info['title']}")
         self.artist_label.setText(f"Artista: {song_info['performer']}")
 
-        # Descargar y mostrar la imagen del álbum
+        # Descargar y mostrar la imagen del album
         image_data = requests.get(song_info['image_url']).content
         pixmap = QPixmap()
         pixmap.loadFromData(image_data)
@@ -283,7 +282,7 @@ class SongPage(QWidget):
         # Configurar URL de vista previa en el reproductor
         self.player.setMedia(QMediaContent(QUrl(song_info['track_url'])))
 
-        # Reproducir la canción automáticamente al cargar una nueva
+        # Reproducir la cancion automaticamente al cargar una nueva
         self.player.play()
         self.play_pause_button.setText("⏸")  # Cambiar el botón a pausa
         self.is_playing = True
@@ -299,7 +298,7 @@ class SongPage(QWidget):
         self.is_playing = not self.is_playing
 
     def on_back_clicked(self):
-        # Detener la reproducción cuando regresa a la pantalla principal
+        # Detener la reproduccion cuando regresa a la pantalla principal
         self.player.stop()
         self.is_playing = False
         self.play_pause_button.setText("▶")
@@ -308,30 +307,30 @@ class SongPage(QWidget):
 
     def on_like_clicked(self):
         self.like_count += 1
-        min_score = 100 - (self.like_count - 1) * 10  # Reducir el puntaje mínimo en 10 unidades por cada clic en "Me gusta"
-        # Guardar la canción que te gusta
+        min_score = 100 - (self.like_count - 1) * 10  # Reducir el puntaje mínimo en 10 unidades por cada clic en me gusta
+        # Guardar la cancion que te gusta
         self.liked_songs.append(self.actualSong)    
         if self.like_count == 1:
-            # Primera vez que se hace clic en "Me gusta"
+            # Primera vez que se hace clic en me gusta
             self.basesong = self.actualSong
             self.grafo = CreateSongGrafo(self.basesong)
             print("Grafo creado:", self.grafo)
-            # Refrescar la pantalla con la nueva canción
+            # Refrescar la pantalla con la nueva cancion
             song_info = get_random_song(graph=self.grafo)
             self.display_song(song_info)
         else:
-            self.dislike_count = 0  # Reiniciar el contador de "No me gusta"
+            self.dislike_count = 0  # Reiniciar el contador de no me gusta
             self.lastGrafo = self.grafo
             self.grafo = UpdateSongGrafo(self.basesong, self.actualSong,graph=self.grafo, min_score=min_score)
             self.basesong = self.actualSong
 
-            # Seleccionar una canció-n aleatoria del grafo
+            # Seleccionar una cancion aleatoria del grafo
             song_info = get_random_song(graph=self.grafo)
 
             print("Canción seleccionada:", song_info)
             print(f"Pesos recalculados y nodos eliminados en el grafo (min_score={min_score}):", self.grafo)
             # Detectar cuando queden solo 30 nodos en el grafo
-            if len(self.grafo.nodes) <= 30:
+            if len(self.grafo.nodes) <= 40:
                 self.show_match_screen()
             else:
                 self.display_song(song_info)
@@ -340,7 +339,7 @@ class SongPage(QWidget):
 
     def on_dislike_clicked(self):
         if self.grafo is None:
-            # Grafo no está creado, cargar una nueva canción aleatoria
+            # Grafo no esta creado, cargar una nueva canción aleatoria
             song_info = get_random_song()
             self.display_song(song_info)
         else:
@@ -351,11 +350,11 @@ class SongPage(QWidget):
                 if self.lastGrafo is not None:
                     self.grafo = self.lastGrafo
                     print("Volviendo al grafo anterior:", self.grafo)
-                    # Seleccionar una nueva canción del grafo anterior
+                    # Seleccionar una nueva cancion del grafo anterior
                     self.grafo.remove_node(self.actualSong)
                     song_info = get_random_song(graph=self.grafo)
                     self.display_song(song_info)
-                    self.dislike_count = 0  # Reiniciar el contador de "No me gusta"
+                    self.dislike_count = 0  # Reiniciar el contador de no me gusta
                 else:
                     # Seleccionar una canción aleatoria
                     song_info = get_random_song(self.grafo)
@@ -384,11 +383,11 @@ class SongPage(QWidget):
             return
         print(SongNode(song_info['index']))
         self.actualSong = song_info['index']
-        # Mostrar título y artista
+        # Mostrar titulo y artista
         self.song_label.setText(f"Canción: {song_info['title']}")
         self.artist_label.setText(f"Artista: {song_info['performer']}")
 
-        # Descargar y mostrar la imagen del álbum
+        # Descargar y mostrar la imagen del album
         image_data = requests.get(song_info['image_url']).content
         pixmap = QPixmap()
         pixmap.loadFromData(image_data)
@@ -397,12 +396,12 @@ class SongPage(QWidget):
         # Configurar URL de vista previa en el reproductor
         self.player.setMedia(QMediaContent(QUrl(song_info['track_url'])))
 
-        # Reproducir la canción automáticamente al cargar una nueva
+        # Reproducir la canción automaticamente al cargar una nueva
         self.player.play()
         self.play_pause_button.setText("⏸")  # Cambiar el botón a pausa
         self.is_playing = True
 
-# Clase principal para la aplicación
+# Clase principal para la aplicacion
 class TuneMatchApp(QStackedWidget):
     def __init__(self):
         super().__init__()

@@ -155,7 +155,7 @@ def UpdateSongGrafo(previous_index, new_index, graph, min_score):
     csv_path = os.path.join('assets', 'data_clean.csv')
     df = pd.read_csv(csv_path)
     
-    # Verificar si los índices existen en el dataset
+    # Verificar si los indices existen en el dataset
     if previous_index not in df['index'].values or new_index not in df['index'].values:
         return "Index not found"
     
@@ -306,5 +306,3 @@ def SongNode(index):
         'track_url': track_url,
         'image_url': image_url
     }
-
-print(SongNode(1))
