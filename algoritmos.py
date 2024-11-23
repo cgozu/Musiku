@@ -7,8 +7,8 @@ import networkx as nx
 import heapq
 
 # Variables de autenticación de Spotify
-client_id = '82c9ff8e123b4112bbd706a75fac9c3f'
-client_secret = '121b746c23184e6b8af94a2ab00e7202'
+client_id = '65aeb32b47e948159e0dcf70ca3e0589'
+client_secret = '4c7f1733f74a4f78a3163c494d717d90'
 
 # Obtener Access Token
 def get_spotify_token():

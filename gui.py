@@ -4,6 +4,7 @@ from PyQt5.QtGui import QPixmap, QFont, QIcon
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtCore import QPropertyAnimation, QRect
+from PyQt5.QtWidgets import QScrollArea
 import requests
 from algoritmos import get_random_song, SongNode, CreateSongGrafo, UpdateSongGrafo, get_top_3_similar_songs
 
@@ -56,19 +57,28 @@ class MatchPage(QWidget):
         print("Liked songs:", self.liked_songs)
         print("Top 3 songs indices:", self.top_3_songs_indices)
         
-        layout = QVBoxLayout()
+        # Crear una área de desplazamiento
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
         
-        # Titulo
+        # Contenedor para el contenido desplazable
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+
+        # Título para canciones que te gustaron
         title_label = QLabel("Canciones que te gustaron:", self)
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setFont(QFont("Arial", 20, QFont.Bold))
-        layout.addWidget(title_label)
+        scroll_layout.addWidget(title_label)
         
         # Mostrar las canciones que te gustaron
         for song_index in self.liked_songs:
             song = SongNode(song_index)
             song_layout = QVBoxLayout()
+            
+            # Información de la canción
             song_label = QLabel(f"{song['title']} - {song['performer']}", self)
+            song_layout.addWidget(song_label)
             
             # Agregar la imagen del álbum
             image_url = song['image_url']
@@ -79,20 +89,24 @@ class MatchPage(QWidget):
                 image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio))
                 song_layout.addWidget(image_label)
             
-            song_layout.addWidget(song_label)
-            layout.addLayout(song_layout)
-        
-        # Titulo para las canciones MATCH
+            scroll_layout.addLayout(song_layout)
+
+        # Título para canciones MATCH
         match_label = QLabel("CANCIONES MATCH:", self)
         match_label.setAlignment(Qt.AlignCenter)
         match_label.setFont(QFont("Arial", 20, QFont.Bold))
-        layout.addWidget(match_label)
+        scroll_layout.addWidget(match_label)
         
-        # Mostrar las 3 canciones mas cercanas
+        # Mostrar las 3 canciones más cercanas
         for index in self.top_3_songs_indices:
             song = SongNode(index)
             song_layout = QVBoxLayout()
+            
+            # Información de la canción MATCH
             song_label = QLabel(f"{song['title']} - {song['performer']} - {song['spotify_track_album']}", self)
+            song_layout.addWidget(song_label)
+            
+            # Agregar la imagen del álbum
             image_url = song['image_url']
             if image_url:
                 pixmap = QPixmap()
@@ -100,29 +114,36 @@ class MatchPage(QWidget):
                 image_label = QLabel(self)
                 image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio))
                 song_layout.addWidget(image_label)
+            
+            # Botón de reproducir
             play_button = QPushButton("Reproducir", self)
             play_button.setStyleSheet("""
-    QPushButton {
-        background-color: #DC143C;  
-        color: white;               
-        border-radius: 2px;        
-        padding: 5px 9px;        
-        font-size: 17px;            
-        border: 2px solid #DC143C;  
-    }
-    QPushButton:hover {
-        background-color: #B22222;  
-    }
-    QPushButton:pressed {
-        background-color: #8B0000;  
-    }
-""")
+                QPushButton {
+                    background-color: #DC143C;  
+                    color: white;               
+                    border-radius: 2px;        
+                    padding: 5px 9px;        
+                    font-size: 17px;            
+                    border: 2px solid #DC143C;  
+                }
+                QPushButton:hover {
+                    background-color: #B22222;  
+                }
+                QPushButton:pressed {
+                    background-color: #8B0000;  
+                }
+            """)
             play_button.clicked.connect(lambda _, s=song: self.play_song(s))
-            song_layout.addWidget(song_label)
             song_layout.addWidget(play_button)
-            layout.addLayout(song_layout)
-        
-        self.setLayout(layout)
+            scroll_layout.addLayout(song_layout)
+
+        # Configurar el área de desplazamiento
+        scroll_area.setWidget(scroll_content)
+
+        # Diseño principal
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(scroll_area)
+        self.setLayout(main_layout)
     
     def play_song(self, song):
         self.player.setMedia(QMediaContent(QUrl(song['track_url'])))
@@ -330,7 +351,7 @@ class SongPage(QWidget):
             print("Canción seleccionada:", song_info)
             print(f"Pesos recalculados y nodos eliminados en el grafo (min_score={min_score}):", self.grafo)
             # Detectar cuando queden solo 30 nodos en el grafo
-            if len(self.grafo.nodes) <= 40 or min_score < 0:
+            if len(self.grafo.nodes) <= 40 or min_score < 15:
                 self.show_match_screen()
             else:
                 self.display_song(song_info)
